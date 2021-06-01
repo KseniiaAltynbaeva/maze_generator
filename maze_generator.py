@@ -1,5 +1,9 @@
 import random
 import sys
+from colorama import Fore, Style
+import os
+import keyboard
+os.system('cls' if os.name == 'nt' else 'clear')
 sys.setrecursionlimit(20000)
 
 
@@ -24,6 +28,7 @@ class Edge:
 
     def __hash__(self):
         return hash(self.start * + self.finish)
+
 
 class Maze:
     def __init__(self, height, width, algorithm):
@@ -71,6 +76,7 @@ class Maze:
             queue = self.get_neighbours(edge.finish)
             for vertex in queue:
                 edges.append(Edge(edge.finish, vertex[0] * self.width + vertex[1]))
+            random.shuffle(edges)
         self.edges.sort()
 
     def kruskal_algorithm(self):
@@ -146,6 +152,7 @@ class Maze:
         return sorted(solution)
 
     def print_solution(self):
+        sys.stdout.flush()
         solution = self.solve()
         visualisation = self.build_maze()
         for edge in solution:
@@ -166,8 +173,13 @@ class Maze:
             visualisation[2 * self.height - 1][2 * self.width] = '*'
         for i in range(2 * self.height + 1):
             for j in range(2 * self.width + 1):
-                print(visualisation[i][j], end=' ')
+                if visualisation[i][j] == '*':
+                    print(Fore.GREEN + visualisation[i][j], end=' ')
+                    print(Style.RESET_ALL, end='')
+                else:
+                    print(visualisation[i][j], end=' ')
             print()
+        sys.stdout.flush()
 
     def save(self, filename):
         visualisation = self.build_maze()
@@ -176,6 +188,39 @@ class Maze:
             for j in range(2 * self.width + 1):
                 file.write(visualisation[i][j]+" ")
             file.write('\n')
+        file.close()
+
+    def read(self, filename):
+        file = open(filename, 'r')
+        lines = file.read().split('\n')
+        for j in range(len(lines)):
+            newline = str()
+            for i in range(len(lines[j])):
+                if i % 2:
+                    continue
+                newline += lines[j][i]
+            lines[j] = newline
+        lines.pop()
+        self.height = (len(lines) - 1) // 2
+        self.width = (len(lines[0]) - 1) // 2
+        for i in range(2 * self.height + 1):
+            for j in range(2 * self.width + 1):
+                if (i % 2 == 0 or j % 2 == 0) and (i != 2 * self.height - 1 or j != 2*self.width) and j != 0:
+                    if lines[i][j] == ' ':
+                        if i % 2 != 0:
+                            vis_line = (i - 1) // 2
+                            vis_column_left = (j - 1 - 1) // 2
+                            vis_column_right = (j - 1 + 1) // 2
+                            start = self.width * vis_line + vis_column_left
+                            finish = self.width * vis_line + vis_column_right
+                            self.edges.append(Edge(start, finish))
+                        if j % 2 != 0:
+                            vis_column = (j - 1) // 2
+                            vis_line_left = (i - 1 - 1) // 2
+                            vis_line_right = (i - 1 + 1) // 2
+                            start = self.width * vis_line_left + vis_column
+                            finish = self.width * vis_line_right + vis_column
+                            self.edges.append(Edge(start, finish))
         file.close()
 
     def build_maze(self):
@@ -208,4 +253,41 @@ class Maze:
             print()
 
     def play(self):
-        pass
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print("Используйте стрелочки для игры! Нажмите ctrl, чтобы выйти.")
+        visualisation = self.build_maze()
+        visualisation[1][0] = '*'
+        current_position = [1, 0]
+        possible_coord = current_position[:]
+        for i in range(2 * self.height + 1):
+            for j in range(2 * self.width + 1):
+                print(visualisation[i][j], end=' ')
+            print()
+        sys.stdout.flush()
+
+        while current_position != [2 * self.height - 1, 2 * self.width]:
+            key = keyboard.read_key()
+            if key == "ctrl":
+                break
+            if key == "up":
+                possible_coord = [current_position[0] - 1, current_position[1]]
+            if key == "right":
+                possible_coord = [current_position[0], current_position[1] + 1]
+            if key == "down":
+                possible_coord = [current_position[0] + 1, current_position[1]]
+            if key == "left":
+                possible_coord = [current_position[0], current_position[1] - 1]
+            if visualisation[possible_coord[0]][possible_coord[1]] == "$":
+                print("Здесть пройти нельзя!")
+                sys.stdout.flush()
+                continue
+            visualisation[current_position[0]][current_position[1]] = ' '
+            current_position = possible_coord[:]
+            visualisation[current_position[0]][current_position[1]] = '*'
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print("Используйте стрелочки для игры!Нажмите ctrl, чтобы выйти.")
+            for i in range(2 * self.height + 1):
+                for j in range(2 * self.width + 1):
+                    print(visualisation[i][j], end=' ')
+                print()
+            sys.stdout.flush()
